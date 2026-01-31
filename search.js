@@ -27,35 +27,67 @@ export default async function handler(req, res) {
       'sort': 'price'
     });
     
-    const ebayResponse = await fetch(
-      `https://api.ebay.com/buy/browse/v1/item_summary/search?${params.toString()}`,
-      {
-        headers: {
-          'Authorization': `Bearer ${EBAY_TOKEN}`,
-          'X-EBAY-C-MARKETPLACE-ID': 'EBAY_FR'
-        }
-      }
-    );
+    const url = `https://api.ebay.com/buy/browse/v1/item_summary/search?${params.toString()}`;
     
-    if (!ebayResponse.ok) {
-      return res.status(ebayResponse.status).json({ error: `eBay error: ${ebayResponse.status}` });
+    const ebayResponse = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${EBAY_TOKEN}`,
+        'X-EBAY-C-MARKETPLACE-ID': 'EBAY_FR',
+        'Accept': 'application/json'
+      }
+    });
+    
+    const responseText = await ebayResponse.text();
+    
+    // Check if response is JSON
+    let data;
+    try {
+      data = JSON.parse(responseText);
+    } catch (parseError) {
+      console.error('Parse error. Response text:', responseText.substring(0, 500));
+      return res.status(500).json({ 
+        error: 'Invalid response from eBay',
+        details: responseText.substring(0, 200),
+        status: ebayResponse.status
+      });
     }
     
-    const data = await ebayResponse.json();
+    if (!ebayResponse.ok) {
+      console.error('eBay API Error:', ebayResponse.status, data);
+      return res.status(ebayResponse.status).json({ 
+        error: `eBay API error: ${ebayResponse.status}`,
+        details: data.errors?.[0]?.message || 'Unknown error'
+      });
+    }
     
-    const sales = (data.itemSummaries || [])
-      .filter(item => item.price)
+    if (!data.itemSummaries || data.itemSummaries.length === 0) {
+      return res.json({
+        sales: [],
+        totalCount: 0
+      });
+    }
+    
+    const sales = data.itemSummaries
+      .filter(item => item.price && parseFloat(item.price.value) > 0)
       .map(item => ({
-        title: item.title,
+        title: item.title || 'Sans titre',
         price: parseFloat(item.price.value),
         date: new Date().toLocaleDateString('fr-FR'),
-        url: item.itemWebUrl,
-        image: item.image?.imageUrl
+        url: item.itemWebUrl || '#',
+        image: item.image?.imageUrl || null
       }));
     
-    return res.json({ sales, totalCount: sales.length });
+    return res.json({ 
+      sales, 
+      totalCount: data.total || sales.length 
+    });
     
   } catch (error) {
-    return res.status(500).json({ error: error.message });
+    console.error('Server error:', error);
+    return res.status(500).json({ 
+      error: 'Internal server error',
+      message: error.message 
+    });
   }
 }
