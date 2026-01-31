@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PokéPrice eBay - Prix en temps réel</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&family=Space+Mono:wght@400;700&display=swap');
+        
+        :root {
+            --electric: #FFD700;
+            --fire: #FF6B35;
+            --water: #4A90E2;
+            --ebay-blue: #0064D2;
+            --dark: #1a1a2e;
+            --light: #f8f9fa;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Fredoka', sans-serif;
+            background: linear-gradient(135deg, #0064D2 0%, #00A2FF 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+        
+        .logo {
+            font-size: 3em;
+            font-weight: 700;
+            color: white;
+            margin-bottom: 10px;
+        }
+        
+        .tagline {
+            color: white;
+            font-size: 1.1em;
+        }
+        
+        .search-card {
+            background: white;
+            border-radius: 24px;
+            padding: 35px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            margin-bottom: 30px;
+        }
+        
+        .search-input {
+            width: 100%;
+            padding: 18px 22px;
+            font-size: 1.1em;
+            border: 3px solid #e0e0e0;
+            border-radius: 16px;
+            margin-bottom: 20px;
+        }
+        
+        .search-btn {
+            width: 100%;
+            padding: 18px;
+            font-size: 1.2em;
+            font-weight: 700;
+            background: linear-gradient(135deg, #0064D2 0%, #00A2FF 100%);
+            color: white;
+            border: none;
+            border-radius: 16px;
+            cursor: pointer;
+        }
+        
+        .results-card {
+            background: white;
+            border-radius: 24px;
+            padding: 35px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="logo">⚡ PokéPrice eBay</div>
+            <div class="tagline">Prix en temps réel sur eBay.fr</div>
+        </div>
+        
+        <div class="search-card">
+            <input 
+                type="text" 
+                id="cardSearch" 
+                class="search-input" 
+                placeholder="Ex: Dracaufeu VMAX"
+            >
+            <button class="search-btn" onclick="searchCard()">
+                🔍 Rechercher sur eBay.fr
+            </button>
+        </div>
+        
+        <div id="results"></div>
+    </div>
+
+    <script>
+        async function searchCard() {
+            const cardName = document.getElementById('cardSearch').value.trim();
+            if (!cardName) return;
+            
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.innerHTML = '<div class="results-card">⏳ Recherche en cours...</div>';
+            
+            try {
+                const response = await fetch('/api/search', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ cardName })
+                });
+                
+                const data = await response.json();
+                resultsDiv.innerHTML = '<div class="results-card">' + JSON.stringify(data, null, 2) + '</div>';
+            } catch (error) {
+                resultsDiv.innerHTML = '<div class="results-card">❌ Erreur: ' + error.message + '</div>';
+            }
+        }
+    </script>
+</body>
+</html>
